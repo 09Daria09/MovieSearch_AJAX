@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search</title>
+    <style>
+   body {
+    font-family: 'Arial', sans-serif;
+    background-color: #121212; 
+    color: #e0e0e0; 
+    margin: 0;
+    padding: 20px;
+}
+.movie-details-container {
+    display: flex;
+    align-items: flex-start; 
+    gap: 20px; 
+}
+
+.movie-details-poster {
+    width: 350px; 
+    height: auto;
+    flex-shrink: 0;
+}
+
+.movie-details-info {
+    max-width: 600px; 
+}
+
+#searchForm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+#searchForm input[type="text"], #searchForm select {
+    padding: 10px;
+    background-color: #333; 
+    color: #e0e0e0; 
+    border: 2px solid #444;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+#searchForm button {
+    padding: 10px 20px;
+    border: none;
+    background-color: #f0c040; 
+    color: #333; 
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#searchForm button:hover {
+    background-color: #d8b536; 
+}
+
+#movies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.movie {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: #222; 
+    color: #e0e0e0; 
+    border: 1px solid #f0c040; 
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    width: 200px;
+}
+
+.movie img {
+    width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.movie button {
+    align-self: center; 
+    background-color: #333; 
+    color: #f0c040; 
+    border: 1px solid #f0c040; 
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.movie button:hover {
+    background-color: #444; 
+    color: #fff; 
+}
+#pagination
+{
+    margin-top: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+#pagination button {
+    background-color: #333;
+    color: #f0c040;
+    border: 1px solid #f0c040;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#pagination button:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+#movieDetails {
+    background-color: #222;
+    color: #e0e0e0;
+    border: 1px solid #f0c040;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+#container
+{
+    padding: 0px 150px;
+}
+
+    </style>
+</head>
+<body>
+    <form id="searchForm">
+        <input type="text" id="searchText" placeholder="Enter movie name...">
+        <select id="type">
+            <option value="">All</option>
+            <option value="movie">Movie</option>
+            <option value="series">Series</option>
+            <option value="episode">Episode</option>
+        </select>
+        <button type="submit">Search</button>
+    </form>
+    <div id="container">
+    <div id="movies"></div>
+    </div>
+    <div id="pagination"></div>
+    <div id="movieDetails"></div>
+
+    <script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const searchText = document.getElementById('searchText').value.trim();
+    const type = document.getElementById('type').value;
+    searchMovies(searchText, type, 1);
+});
+
+function searchMovies(searchText, type, page) {
+    fetch(`http://www.omdbapi.com/?s=${searchText}&type=${type}&page=${page}&apikey=6d36d181&`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.Response === "True") {
+                displayMovies(data.Search);
+                if (data.totalResults > 10) {
+                    createPagination(Math.ceil(data.totalResults / 10), searchText, type);
+                } else {
+                    document.getElementById('pagination').innerHTML = ''; 
+                }
+            } else {
+                document.getElementById('movies').innerHTML = '<p>Movie not found! ( ͡> ︵ ͡<)</p>';
+                document.getElementById('pagination').innerHTML = ''; 
+            }
+        })
+        .catch(error => console.error(error));
+}
+
+
+function displayMovies(movies) {
+    const movieContainer = document.getElementById('movies');
+    movieContainer.innerHTML = movies.map(movie => `
+        <div class="movie">
+            <h3>${movie.Title} (${movie.Year})</h3>
+            <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'img/1.png'}" alt="Poster for ${movie.Title}" style="width: 200px; height: auto;">
+            <button onclick="showDetails('${movie.imdbID}')">Details</button>
+        </div>
+    `).join('');
+}
+
+
+
+
+function createPagination(pages, searchText, type) {
+    const paginationContainer = document.getElementById('pagination');
+    paginationContainer.innerHTML = '';
+    for (let i = 1; i <= pages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+            searchMovies(searchText, type, i);
+        });
+        paginationContainer.appendChild(btn);
+    }
+}
+
+function showDetails(imdbID) {
+    fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=6d36d181&`)
+        .then(response => response.json())
+        .then(data => {
+            const detailsContainer = document.getElementById('movieDetails');
+            detailsContainer.innerHTML = `
+                <div class="movie-details-container">
+                    <img src="${data.Poster}" alt="Poster for ${data.Title}" class="movie-details-poster">
+                    <div class="movie-details-info">
+                        <h2>${data.Title} (${data.Year})</h2>
+                        <p><b>Released:</b> ${data.Released}</p>
+                        <p><b>Runtime:</b> ${data.Runtime}</p>
+                        <p><b>Genre:</b> ${data.Genre}</p>
+                        <p><b>Director:</b> ${data.Director}</p>
+                        <p><b>Writer:</b> ${data.Writer}</p>
+                        <p><b>Actors:</b> ${data.Actors}</p>
+                        <p><b>Plot:</b> ${data.Plot}</p>
+                        <p><b>Language:</b> ${data.Language}</p>
+                        <p><b>Country:</b> ${data.Country}</p>
+                        <p><b>Ratings:</b> ${data.Ratings.map(rating => `${rating.Source}: ${rating.Value}`).join(', ')}</p>
+                        <p><b>IMDB Rating:</b> ${data.imdbRating}</p>
+                        <p><b>Box Office:</b> ${data.BoxOffice}</p>
+                    </div>
+                </div>
+            `;
+
+            detailsContainer.scrollIntoView({ behavior: 'smooth' });
+        })
+        .catch(error => console.error(error));
+}
+
+
+    </script>
+</body>
+</html>
